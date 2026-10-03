@@ -1,6 +1,7 @@
 <?php
     $root = './';
-    require_once('lib/lib.php');
+    require_once($root.'global.php');
+    require_once($root.'lib/lib.php');
 ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="de-DE"
  xmlns:og='http://opengraphprotocol.org/schema/'>
@@ -13,7 +14,7 @@
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="https://www.datamaps.eu/erstellen/" />
 
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <link rel="stylesheet" href="https://www.datamaps.eu/wp-content/themes/datamaps/style.css" type="text/css" media="screen" />
 <!--[if IE 6]><link rel="stylesheet" href="https://www.datamaps.eu/wp-content/themes/datamaps/style.ie6.css" type="text/css" media="screen" /><![endif]-->
@@ -42,6 +43,16 @@
 <!--
     a:link, a:visited, a:hover {
         text-decoration: none !important;
+    }
+    .cc_note {
+        line-height: 50px;
+        vertical-align: middle;
+    }
+    @media screen and (max-width: 700px) {
+        .cc_note {
+            line-height: normal;
+            margin-top: 10px;
+        }
     }
 -->
 </style>
@@ -74,6 +85,7 @@
             <div class="art-nav">
             	<div class="art-nav-l"></div>
             	<div class="art-nav-r"></div>
+            	<button type="button" class="art-menu-toggle" aria-expanded="false">Menü</button>
             	
 <ul class="art-menu">
 	<li><a href="https://www.datamaps.eu" title="Startseite"><span class="l"> </span><span class="r"> </span><span class="t">Startseite</span></a>
@@ -110,26 +122,11 @@
           <form action="index.php" method="post">
 
 
-        <h2 class="art-postheader">Rohdatenverzeichnis
-        
-        <div style="float:right;">
-        <!-- Begin ConveyThis Button -->
-		<script type="text/javascript">
-            //var conveythis_src = 'de';
-        </script>
-        <div class="conveythis">
-            <a class="conveythis_drop" title="Translate" href="http://www.translation-services-usa.com/"><span class="conveythis_button_1">automatic translation</span></a>
-        </div>
-        <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
-        <!--<script type="text/javascript" src="http://s1.conveythis.com/e2/_v_3/javascript/e3.js"></script>-->
-        <!-- End ConveyThis Button -->
-        </div>
-                
-        </h2>
+        <h2 class="art-postheader">Rohdatenverzeichnis</h2>
         <div class="art-postcontent">
 
           <img src="theme/cc.png" alt="Creative Commons" width="32" style="float:left; margin:10px" />
-          <p style="line-height:50px; vertical-align:middle">
+          <p class="cc_note">
             Die folgenden Daten unterstehen der <a href="http://creativecommons.org/licenses/by-sa/3.0/at/" target="_blank">Creative Commons Namensnennung-Weitergabe unter gleichen Bedingungen 3.0 Österreich Lizenz</a>.
           </p>
 
@@ -147,10 +144,13 @@
         $files = $fm->list_files('%timestamp-%title-%subtitle-1');
         if ($files)
         {
-            foreach ($files as $key => $f) {
-                $file = $location_raw_data.$f;
-                if (!file_exists($file))
+            foreach ($files as $key => $file) {
+                // list_files() returns paths incl. folder, also of SVG/PNG
+                // files. Only raw data (JSON) is listed here.
+                if (!endswith($file, FileManager::$extension_json)
+                    || !file_exists($file))
                     continue;
+                $f = basename($file);
 ?>
             <tr>
               <td style="border:1px solid #ccc;"><?=date('Y-m-d', filemtime($file)); ?></td>
@@ -160,7 +160,7 @@
                 </a>
               </td>
               <td style="border:1px solid #ccc;"><?=sprintf("%.1f", ((float)filesize($file) / 1024)); ?> KB</td>
-              <td style="border:1px solid #ccc;"><a href="<?=$file ?>" title="Rohdaten als JSON-Array downloaden">Rohdaten</a></td>
+              <td style="border:1px solid #ccc;"><a href="<?=_et($file); ?>" title="Rohdaten als JSON-Array downloaden">Rohdaten</a></td>
             </tr>
 <?php
             }

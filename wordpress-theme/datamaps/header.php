@@ -2,12 +2,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" <?php language_attributes(); ?>>
 <head profile="http://gmpg.org/xfn/11">
 <meta http-equiv="Content-Type" content="<?php bloginfo('html_type') ?>; charset=<?php bloginfo('charset') ?>" />
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title><?php wp_title( '|', true, 'right' ); bloginfo( 'name' ); ?></title>
 <link rel="stylesheet" href="<?php bloginfo('stylesheet_url') ?>" type="text/css" media="screen" />
 <!--[if IE 6]><link rel="stylesheet" href="<?php bloginfo('template_url'); ?>/style.ie6.css" type="text/css" media="screen" /><![endif]-->
 <!--[if IE 7]><link rel="stylesheet" href="<?php bloginfo('template_url'); ?>/style.ie7.css" type="text/css" media="screen" /><![endif]-->
-<?php if(WP_VERSION < 3.0): ?>
+<?php if(version_compare(WP_VERSION, '3.0', '<')): ?>
 <link rel="alternate" type="application/rss+xml" title="<?php printf(__('%s RSS Feed', THEME_NS), get_bloginfo('name')); ?>" href="<?php bloginfo('rss2_url'); ?>" />
 <link rel="alternate" type="application/atom+xml" title="<?php printf(__('%s Atom Feed', THEME_NS), get_bloginfo('name')); ?>" href="<?php bloginfo('atom_url'); ?>" />
 <?php endif; ?>
@@ -52,7 +52,8 @@ wp_head(); ?>
             <div class="art-nav">
             	<div class="art-nav-l"></div>
             	<div class="art-nav-r"></div>
-            	<?php 
+            	<button type="button" class="art-menu-toggle" aria-expanded="false"><?php _e('Menu'); ?></button>
+            	<?php
             		echo art_get_menu(array(
             				'source' => art_get_option('art_menu_source'),
             				'depth' => art_get_option('art_menu_depth'),

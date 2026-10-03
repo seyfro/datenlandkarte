@@ -179,7 +179,7 @@
         //
         public function get_root()
         {
-            return $this->root;
+            return self::$root;
         }
 
         //
@@ -214,7 +214,7 @@
         //
         public function set($vis_path)
         {
-            $vis_path = strtolower(trim($vis_path));
+            $vis_path = is_string($vis_path) ? strtolower(trim($vis_path)) : '';
             $this->valid = NULL;
             $this->vis_path = $vis_path;
 
@@ -235,7 +235,7 @@
 
             if (!$this->is_valid())
                 return $this->error->add('Default vis_path is invalid: '
-                    .$vis_path, 2);
+                    .$this->vis_path, 2);
             return true;
         }
 
@@ -400,7 +400,7 @@
             {
                 foreach ($indizes as $index)
                 {
-                    if (array_key_exists($index, $current))
+                    if (is_array($current) && array_key_exists($index, $current))
                         $current = &$current[$index];
                     else
                         return false;
@@ -431,9 +431,11 @@
             {
                 foreach ($indizes as $index)
                 {
-                    $current = &$current[$index];
-                    if (!isset($current))
+                    // check before referencing, otherwise the reference
+                    // creates NULL entries in the hierarchy
+                    if (!is_array($current) || !isset($current[$index]))
                         return NULL;
+                    $current = &$current[$index];
                 }
             }
 
@@ -489,10 +491,13 @@
 
                         $filename .= $pos['filename'].'_';
                     }
+                    if (!is_array($pos) || !isset($pos[$index]))
+                        return false;
                     $pos = &$pos[$index];
                     $i++;
                 }
-                $filename .= $pos['filename'];
+                if (isset($pos['filename']))
+                    $filename .= $pos['filename'];
             } else
                 return NULL;
 
@@ -548,11 +553,10 @@
                 {
                     if (!$omit)
                         $names[] = $current['name'];
+                    if (!is_array($current) || !isset($current[$index]))
+                        return NULL;
                     $current = &$current[$index];
                     $omit = false;
-
-                    if (!isset($current))
-                        return NULL;
                 }
                 $names[] = $current['name'];
             }
@@ -581,10 +585,10 @@
             {
                 foreach ($indizes as $index)
                 {
+                    if (!is_array($current) || !isset($current[$index]))
+                        return NULL;
                     $current = &$current[$index];
 
-                    if (!isset($current))
-                        return NULL;
                     $iteration[] = array(
                         'name' => $current['name'],
                         'filename' => $current['filename']

@@ -29,7 +29,7 @@
         private $geo;
         private $data;
         private $file;
-        private $svg;
+        private $svg = '';
 
         public $error;
 
@@ -106,9 +106,12 @@
             while (strpos($this->svg, '%legende'.$nr_squares.'%') !== false)
                 $nr_squares++;
 
+            $scale_count = is_array($this->data->scale)
+                ? count($this->data->scale) : 0;
+
             for ($i=0; $i<$nr_squares; $i++)
             {
-                if ($i >= count($this->data->scale))
+                if ($i >= $scale_count)
                     $text = '';
                 else
                 {
@@ -145,13 +148,13 @@
         //
         // Save the map in a file. Use FileManager instance in file attribute
         //
-        // @return an array of written files.
-        //         false if not all files were written
+        // @return an array of written files (SVG first, PNGs if created).
+        //         false if the SVG file was not written
         //
         public function save()
         {
             $result = $this->file->create_svg($this->data, $this->svg);
-            if ($result === false || count($result) !== 3)
+            if ($result === false || count($result) === 0)
                 return false;
             return $result;
         }
@@ -166,7 +169,8 @@
         {
             static $call_nr = 0;
 
-            $value = $this->data->data[$call_nr];
+            $value = isset($this->data->data[$call_nr])
+                ? $this->data->data[$call_nr] : Data::$invalid_value;
             $color = $this->_get_appropriate_color($value);
 
             $call_nr++;
@@ -183,7 +187,8 @@
         {
             static $call_num = 0;
 
-            if ($call_num >= count($this->data->colors->palette))
+            if (!is_array($this->data->colors->palette)
+                || $call_num >= count($this->data->colors->palette))
                 $value = self::$invalid_legend_color;
             else
                 $value = $this->data->colors->palette[$call_num];
@@ -207,14 +212,18 @@
             $palette =& $this->data->colors->palette;
             $scale =& $this->data->scale;
 
+            if (!is_array($scale))
+                return $this->_xml_sanitize(self::$invalid_value_color);
+
             $index = 0;
+            $val = NULL;
             foreach ($scale as $val)
             {
                 if ($val[0] <= $value && $value < $val[1])
                     return $this->_xml_sanitize($palette[$index]);
                 $index++;
             }
-            if ($value === $val[1])
+            if ($val !== NULL && $value === $val[1])
                 return $this->_xml_sanitize($palette[--$index]);
             return $this->_xml_sanitize(self::$invalid_value_color);
         }

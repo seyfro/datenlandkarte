@@ -62,7 +62,6 @@
     //
     function create_list_form($keys, $indent)
     {
-        $vp = new VisPath($vis_path);
         $out = '';
         $content = false;
 
@@ -90,7 +89,6 @@
     //
     function create_json_form($keys, $indent)
     {
-        $vp = new VisPath($vis_path);
         $out = '{'."\n";
         $content = false;
 
@@ -120,7 +118,6 @@
     //
     function create_kvalloc_form($keys, $indent)
     {
-        $vp = new VisPath($vis_path);
         $out = '';
         $content = false;
 
@@ -219,6 +216,7 @@
         public $vispath;
         public $colors;
         public $data;
+        public $scale;
 
         // delimiters
         public $list_delim     = "\n";
@@ -386,6 +384,15 @@
         {
             // NOTE: Be aware of changing order of method calls
 
+            // missing fields (eg. unchecked checkboxes) default to ''
+            foreach (array('title', 'subtitle', 'author', 'source', 'dec',
+                'visibility', 'fac', 'list_delim', 'kvalloc_delim1',
+                'kvalloc_delim2', 'format', 'colors') as $key)
+            {
+                if (!isset($post[$key]))
+                    $post[$key] = '';
+            }
+
             // simple parameters
             $this->title    = $this->sanitize_title($post['title']);
             $this->subtitle = $this->sanitize_subtitle($post['subtitle']);
@@ -478,7 +485,7 @@
         //
         public function process_vispath(&$post)
         {
-            $vp = UserInterface::parse_vis_path($post);
+            $vp = $this->parse_vis_path($post);
             $vp = new VisPath($vp);
             if ($vp->is_valid())
                 return $vp;
@@ -497,14 +504,25 @@
         {
             // aggregate keys
             $keys     = array();
+            if (!is_object($this->vispath))
+                return $this->error->add('Bitte wählen Sie eine gültige '.
+                    'Vorlage aus.', 3);
             $array    = $this->geo->get($this->vispath);
-            if ($array === NULL || $array === false)
+            if (!is_array($array))
                 return false;
 
             foreach ($array as $key => $value)
             {
                 if (is_int($key))
                     $keys[]   = $value['name'];
+            }
+
+            // missing fields default to NULL
+            foreach (array('format', 'manual', 'list', 'list_delim', 'json',
+                'kvalloc', 'kvalloc_delim1', 'kvalloc_delim2') as $key)
+            {
+                if (!isset($post[$key]))
+                    $post[$key] = NULL;
             }
 
             // aggregate data according to format
@@ -538,8 +556,8 @@
         //
         public function process_scale(&$data, $num)
         {
-            $min = $data[0];
-            $max = $data[1];
+            $min = isset($data[0]) ? $data[0] : NULL;
+            $max = isset($data[1]) ? $data[1] : NULL;
 
             foreach ($data as $value)
             {
@@ -656,15 +674,28 @@
         //
         public function parse_json(&$data, &$keys)
         {
-            $json = json_decode($data, true);
+            if (is_empty($data))
+                return $this->error->add
+                    ('Bitte füllen Sie das Feld "Daten" aus.', 3);
+
+            $json = json_decode((string)$data, true);
+            if (!is_array($json))
+                return $this->error->add('Kein valides JSON-Objekt. '.
+                    'Konnte es nicht verarbeiten', 3);
 
             // merge keys as json
             $data = array();
             foreach ($keys as $key)
             {
                 // NOTE: A missing key means invalid value.
-                if (isset($json[$key]))
-                    $data[] = $json[$key];
+                if (isset($json[$key]) && is_scalar($json[$key]))
+                {
+                    $value = $this->sanitize_value($json[$key]);
+                    if (is_float($value))
+                        $value = $value * $this->fac;
+                    $data[] = $value;
+                } else
+                    $data[] = self::$invalid_value;
             }
             return $data;
         }
@@ -688,6 +719,9 @@
                 return $this->error->add
                     ('Leere Trennzeichen sind nicht erlaubt.', 3);
 
+            // NOTE: $nr was undefined (NULL) here, which removes every
+            // trailing empty line. 0 keeps this behaviour without warning.
+            $nr      = 0;
             $delim1  = UserInterface::sanitize_delimiter($delim1);
             $delim2  = UserInterface::sanitize_delimiter($delim2);
             $data = UserInterface::_remove_trailing_line($data, $delim1, $nr);
@@ -720,7 +754,7 @@
             foreach ($keys as $key)
                 $data[] = (isset($kvalloc[$key])
                     ? ($this->sanitize_value($kvalloc[$key]) * $this->fac)
-                    : $this->$invalid_value);
+                    : self::$invalid_value);
 
             return $data;
         }
@@ -811,7 +845,7 @@
         //
         public function check_apiversion($apiversion)
         {
-            $dec = (int)$dec;
+            $apiversion = (int)$apiversion;
             if (0 <= $apiversion && $apiversion <= 3)
                 return true;
             else
@@ -832,8 +866,10 @@
         //
         public function check_grad($grad)
         {
+            // the upper bound is checked against $color_gradients
+            // in process_colors()
             $grad = (int)$grad;
-            if (0 <= $grad && $grad <= 7)
+            if (0 <= $grad)
                 return true;
             else
                 return $this->error->add('Farbrichtung nicht verfügbar', 3);
@@ -848,7 +884,7 @@
         public function check_colors($colors)
         {
             $colors = (int)$colors;
-            if ($colors > 2)
+            if ($colors >= 2)
                 return true;
             else
                 return $this->error->add('Farbanzahl ungültig. Muss '.
@@ -1126,15 +1162,16 @@
         {
             // [0-9]+: There have been k backslashes before
             // false: There has not been any backslash before
+            $delim = (string)$delim;
             $inside = false;
             $iter = 0;
 
             while (true)
             {
-                $is_backslash = ($delim[$iter] === '\\');
-
                 if ($iter >= str_length($delim))
                     break;
+
+                $is_backslash = ($delim[$iter] === '\\');
 
                 if ($inside === 1 && !$is_backslash)
                 {
@@ -1217,28 +1254,29 @@
         // @param post a $_POST array
         // @return a vis_path string
         //
-        static public function parse_vis_path(&$post)
+        public function parse_vis_path(&$post)
         {
             // apiversion 0
             if (isset($post['base']))
             {
                 // TODO: hardcoded address
                 if ($post['base'] === array('austria', 'bz'))
-                    return 'vis_2_29_0_1';
+                    return 'vis_2_28_0_1';
                 else if ($post['base'] === array('oe', 'gm'))
-                    return 'vis_2_29_0_2';
+                    return 'vis_2_28_0_2';
                 else if ($post['base'] === array('austria', 'bl'))
-                    return 'vis_2_29_0_0';
+                    return 'vis_2_28_0_0';
                 else if ($post['base'] === array('europe', 'l'))
                     return 'vis_2';
-                else if ($post['base'][1] === 'bz')
-                    return 'vis_2_29_1_0_'.((int)$post['base'][0]);
-                else if ($post['base'][1] === 'gm')
-                    return 'vis_2_29_2_0_'.((int)$post['base'][0]);
+                else if (isset($post['base'][1]) && $post['base'][1] === 'bz')
+                    return 'vis_2_28_1_0_'.((int)$post['base'][0]);
+                else if (isset($post['base'][1]) && $post['base'][1] === 'gm')
+                    return 'vis_2_28_2_0_'.((int)$post['base'][0]);
                 else
                     $this->error->add('"base" Parameter angegeben. Aber '
                         .'ist nicht valide', 3);
             }
+
 
             // NOTE: Only for input html tree structure
             /*if (!isset($post['vis_' . $post['vis']]))
@@ -1250,7 +1288,7 @@
                 $path .= '_'.$post[$path];
             }*/
 
-            $path = $post['vis_path'];
+            $path = isset($post['vis_path']) ? $post['vis_path'] : NULL;
 
             return $path;
         }
@@ -1266,6 +1304,9 @@
                 $vp = $this->vispath->get();
             else
                 $vp = '';
+
+            // colors is NULL if process_colors() failed
+            $colors = is_object($this->colors) ? $this->colors : new Colors();
 
             $R = &$_REQUEST;
             foreach (array('title', 'subtitle', 'visibility', 'author',
@@ -1289,9 +1330,9 @@
                 'kvalloc_delim1' => $kvalloc_delim1,
                 'kvalloc_delim2' => $kvalloc_delim2,
 
-                'grad' => $this->colors->grad,
-                'colors' => $this->colors->colors,
-                'palette' => $this->colors->palette,
+                'grad' => $colors->grad,
+                'colors' => $colors->colors,
+                'palette' => $colors->palette,
                 'vis_path' => $vp
             );
         }

@@ -108,25 +108,9 @@ jQuery(function() {
 /* end Menu */
 
 /* begin Layout */
-jQuery(function () {
-    //if (!jQuery.browser.msie || parseInt(jQuery.browser.version) > 7) return;
-    var c = jQuery('div.art-content');
-    if (c.length !== 1) return;
-    var s = c.parent().children('.art-layout-cell:not(.art-content)');
-    jQuery(window).bind('resize', function () {
-        var w = 0; c.css('width', "100%");
-        s.each(function () { w += this.clientWidth; });
-        c.w = c.parent().width();c.css('width', c.w - w);
-    }).trigger('resize');
-    jQuery('div.art-content-layout-row').each(function () {
-        this.c = jQuery(this).children('.art-layout-cell');
-    }).bind('resize', function () {
-        if (this.h == this.clientHeight) return;
-        this.c.css('height', 'auto');
-        this.h = this.clientHeight;
-        this.c.css('height', this.h + 'px');
-    }).trigger('resize');
-});
+// The Artisteer layout fix for IE <= 7 (fixed pixel width/height of the
+// layout cells) was removed: it froze the column height before the page
+// was complete and breaks the mobile layout. CSS display:table does this.
 /* end Layout */
 
 /* begin Button */
@@ -152,4 +136,16 @@ jQuery(function() { artButtonSetup("art-button"); });
 
 jQuery(function () {
     artButtonSetup("button");
+});
+
+/* mobile menu toggle (button.art-menu-toggle inside div.art-nav) */
+document.addEventListener('click', function (e) {
+    var button = e.target;
+    while (button && !(button.className && /\bart-menu-toggle\b/.test(button.className)))
+        button = button.parentNode;
+    if (!button) return;
+    var nav = button.parentNode;
+    var open = /\bart-menu-open\b/.test(nav.className);
+    nav.className = open ? nav.className.replace(/\s*\bart-menu-open\b/, '') : nav.className + ' art-menu-open';
+    button.setAttribute('aria-expanded', open ? 'false' : 'true');
 });

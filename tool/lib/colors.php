@@ -153,6 +153,8 @@
         //
         public function is_valid_hex_color($color)
         {
+            if (!is_string($color))
+                return false;
             return (bool)preg_match(self::$color_regex, $color);
         }
 
@@ -294,6 +296,8 @@
 
             foreach ($color as $key => $value)
                 $color[$key] = $value / 255.0;
+            list($var_r, $var_g, $var_b) = $color;
+            $h = 0;
 
             $min = min($color);
             $max = max($color);
@@ -418,8 +422,14 @@
         //
         public function generate_bgs()
         {
-            $diff = $this->get_color_diff
-                    ($this->palette[2], $this->palette[1]);
+            if (!is_array($this->palette) || count($this->palette) < 2)
+                return false;
+
+            // palettes with only 2 colors have no index 2
+            $diff = false;
+            if (isset($this->palette[2]))
+                $diff = $this->get_color_diff
+                        ($this->palette[2], $this->palette[1]);
             $last = $this->get_color_array
                     ($this->palette[count($this->palette)-1]);
             $first = $this->get_color_array
@@ -430,12 +440,14 @@
 
             $val_last = array_sum($last);
             $val_first = array_sum($first);
-            $is_dark   = create_function('$c', 'return ($c < (0x11 * 3));');
-            $is_bright = create_function('$c', 'return ($c > (0xEE * 3));');
+            // create_function() was removed in PHP 8.0, use closures instead
+            $is_dark   = function ($c) { return ($c < (0x11 * 3)); };
+            $is_bright = function ($c) { return ($c > (0xEE * 3)); };
 
             $grey_gradient = false;
             if ((($first[0] === $first[1]) && ($first[1] === $first[2])) &&
                 (($last[0] === $last[1]) && ($last[1] === $last[2])) &&
+                is_array($diff) &&
                 (($diff[0] === $diff[1]) && ($diff[1] === $diff[2])))
                 $grey_gradient = true;
 
@@ -507,7 +519,7 @@
                 $this->error->add('Seltsame Palette. Werde eine '.
                     'Kontrastfarbe nehmen.', 0);
                 $bg = $this->get_contrast_color($this->palette
-                        [count($this->palette) / 2]);
+                        [(int)(count($this->palette) / 2)]);
                 $this->title_bg = $bg;
                 $this->subtitle_bg = $bg;
                 return $bg;

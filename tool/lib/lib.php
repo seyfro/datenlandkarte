@@ -31,7 +31,7 @@
     //
     function _e($string)
     {
-        return htmlspecialchars($string, ENT_NOQUOTES);
+        return htmlspecialchars((string)$string, ENT_NOQUOTES);
     }
 
     //
@@ -52,7 +52,7 @@
     {
         //$str = preg_replace('/[[^:alnum:]]/', '_', $str);
         //return strlen($str);
-        return mb_strlen($str);
+        return mb_strlen((string)$str);
     }
 
     //
@@ -60,7 +60,7 @@
     //
     function startswith($string, $substring)
     {
-        return substr($string, 0, str_length($substring)) === $substring;
+        return substr((string)$string, 0, str_length($substring)) === $substring;
     }
 
     //
@@ -68,7 +68,7 @@
     //
     function endswith($string, $substring)
     {
-        return substr($string, -str_length($substring)) === $substring;
+        return substr((string)$string, -str_length($substring)) === $substring;
     }
 
     //
@@ -238,7 +238,7 @@
         {
             if ($msg1[1] < $msg2[1])
                 return -1;
-            elseif ($msg[1] === $msg2[1])
+            elseif ($msg1[1] === $msg2[1])
                 return 0;
             else
                 return 1;

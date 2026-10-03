@@ -1,6 +1,9 @@
 <?php
     if (!$_POST || !isset($ui))
+    {
         header('Location: index.php');
+        exit;
+    }
 
     $d = new Data();
     $d->import_ui($ui);
@@ -16,6 +19,21 @@
         $svg->write_areas();
         $files = $svg->save();
     }
+
+    // created files by type (PNGs are missing if conversion failed)
+    $file_svg = $file_png = $file_big_png = NULL;
+    if (!empty($files))
+        foreach ($files as $file)
+        {
+            if (endswith($file, FileManager::$extension_big_png))
+                $file_big_png = $file;
+            else if (endswith($file, FileManager::$extension_png))
+                $file_png = $file;
+            else if (endswith($file, FileManager::$extension_svg))
+                $file_svg = $file;
+        }
+    if ($file_svg === NULL && is_empty($n->filter(2)))
+        $n->add('Die Grafik konnte nicht erzeugt werden.', 3);
 ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="de-DE"
  xmlns:og='http://opengraphprotocol.org/schema/'>
@@ -28,7 +46,7 @@
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="https://www.datamaps.eu/erstellen/" />
 
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <link rel="stylesheet" href="https://www.datamaps.eu/wp-content/themes/datamaps/style.css" type="text/css" media="screen" />
 <!--[if IE 6]><link rel="stylesheet" href="https://www.datamaps.eu/wp-content/themes/datamaps/style.ie6.css" type="text/css" media="screen" /><![endif]-->
@@ -85,6 +103,20 @@
         padding: 10px;
         min-height: 110px;
     }
+    @media screen and (max-width: 700px) {
+        .download {
+            margin: 10px 0;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .download img {
+            max-width: 64px;
+            margin-right: 10px;
+        }
+        img[alt="Preview"] {
+            max-width: 100% !important;
+        }
+    }
 -->
 </style>
 </head>
@@ -116,6 +148,7 @@
             <div class="art-nav">
             	<div class="art-nav-l"></div>
             	<div class="art-nav-r"></div>
+            	<button type="button" class="art-menu-toggle" aria-expanded="false">Menü</button>
             	
 <ul class="art-menu">
 	<li><a href="https://www.datamaps.eu" title="Startseite"><span class="l"> </span><span class="r"> </span><span class="t">Startseite</span></a>
@@ -149,22 +182,7 @@
 <div class="art-post post-2 page type-page hentry" id="post-2">
 	    <div class="art-post-body">
 	            <div class="art-post-inner art-article">
-        <h2 class="art-postheader">Datenlandkarte speichern
-        
-        <div style="float:right;">
-        <!-- Begin ConveyThis Button -->
-		<script type="text/javascript">
-            //var conveythis_src = 'de';
-        </script>
-        <div class="conveythis">
-            <a class="conveythis_drop" title="Translate" href="http://www.translation-services-usa.com/"><span class="conveythis_button_1">automatic translation</span></a>
-        </div>
-        <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
-         <!--<script type="text/javascript" src="http://s1.conveythis.com/e2/_v_3/javascript/e3.js"></script>-->
-        <!-- End ConveyThis Button -->
-        </div>        
-        
-        </h2>
+        <h2 class="art-postheader">Datenlandkarte speichern</h2>
         <div class="art-postcontent">
           <noscript>
             <p>
@@ -193,8 +211,14 @@
           <p>Achtung: aufgrund eines offenen Bugs werden Titel, Legende und Erstellerangaben in der PNG-Ansicht nicht angezeigt - bitte die erstellte Grafik im SVG-Format herunterladen und mittels Programmen via Adobe Illustrator oder <a href="https://inkscape.org/" target="_blank">Inkscape</a> öffnen und anschließend in das gewünschte Format umwandelt.<br/><br/>
           Du bist Entwickler und möchtest mithelfen, diesen Fehler zu beheben (und ev auch datamaps.eu weiterzuentwickeln?) dann <a href="mailto:info@datamaps.eu?subject=Mitarbeit">meld dich bitte bei uns</a>!
           </p>
+<?php if ($file_png === NULL || $file_big_png === NULL) { ?>
+          <p class="error">
+            Die PNG-Grafiken konnten auf dem Server leider nicht erzeugt werden.
+            Die SVG-Grafik steht trotzdem zum Download bereit.
+          </p>
+<?php } ?>
           <p style="text-align:center">
-            <img src="<?=$files[1]; ?>?time=<? echo date("His"); ?>" alt="Preview" style="max-width:80%" />
+            <img src="<?=_et($file_png !== NULL ? $file_png : $file_svg); ?>?time=<?=date("His"); ?>" alt="Preview" style="max-width:80%;height:auto" />
           </p>
 
           <div class="download" style="min-height:40px;">
@@ -205,28 +229,32 @@
           </div>
 
           <div class="download">
-           <a href="<?=$files[0]; ?>">
+           <a href="<?=_et($file_svg); ?>">
              <img src="theme/svg.png" alt="SVG Graphic Datenlandkarte" style="float:left" />
            </a>
-           <h5><a href="<?=$files[0]; ?>">Download SVG</a></h5>
+           <h5><a href="<?=_et($file_svg); ?>">Download SVG</a></h5>
            <p>Scalable Vector Graphics</p>
           </div>
+<?php if ($file_png !== NULL) { ?>
 
           <div class="download">
-           <a href="<?=$files[1]; ?>">
+           <a href="<?=_et($file_png); ?>">
              <img src="theme/png.png" alt="PNG Graphic Datenlandkarte" style="float:left" />
            </a>
-           <h5><a href="<?=$files[1]; ?>">Download PNG</a></h5>
+           <h5><a href="<?=_et($file_png); ?>">Download PNG</a></h5>
            <p>Portable Network Graphics</p>
           </div>
+<?php } ?>
+<?php if ($file_big_png !== NULL) { ?>
 
           <div class="download">
-           <a href="<?=$files[2]; ?>">
+           <a href="<?=_et($file_big_png); ?>">
              <img src="theme/png.png" alt="PNG Graphic Datenlandkarte" style="float:left" />
            </a>
-           <h5><a href="<?=$files[2]; ?>">Download PNG (3fache Größe)</a></h5>
+           <h5><a href="<?=_et($file_big_png); ?>">Download PNG (3fache Größe)</a></h5>
            <p>Portable Network Graphics</p>
           </div>
+<?php } ?>
 <?php } ?>
                     <div class="cleared"></div>
             <div class="cleared"></div>

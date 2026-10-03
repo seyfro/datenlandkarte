@@ -1,7 +1,7 @@
 <?php
 global $art_options;
 
-if (WP_VERSION < 3.0) {
+if (version_compare(WP_VERSION, '3.0', '<')) {
 	$art_options = array (
 		array(	
 		'name'	=>	__('Footer'),

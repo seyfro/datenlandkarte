@@ -8,20 +8,25 @@
             $location_pattern_svgs, $n);
     $g = new Geo($geo_hierarchy, $f);
 
-    if (endswith($_GET['method'], '_form'))
+    $method = isset($_GET['method']) ? $_GET['method'] : '';
+    $indent = isset($_GET['indent']) ? $_GET['indent'] : 0;
+    $keys = NULL;
+    $svg = false;
+
+    if (endswith($method, '_form'))
     {
-        $vp = new VisPath($_GET['vis_path']);
+        $vp = new VisPath(isset($_GET['vis_path']) ? $_GET['vis_path'] : NULL);
         $keys = $g->get($vp);
     }
 
-    if ($_GET['method'] == 'manual_form') {
-        die(create_manual_form($keys, $_GET['indent']));
-    } else if ($_GET['method'] == 'list_form') {
-        die(create_list_form($keys, $_GET['indent']));
-    } else if ($_GET['method'] == 'json_form') {
-        die(create_json_form($keys, $_GET['indent']));
-    } else if ($_GET['method'] == 'kvalloc_form') {
-        die(create_kvalloc_form($keys, $_GET['indent']));
+    if ($method == 'manual_form') {
+        die(create_manual_form($keys, $indent));
+    } else if ($method == 'list_form') {
+        die(create_list_form($keys, $indent));
+    } else if ($method == 'json_form') {
+        die(create_json_form($keys, $indent));
+    } else if ($method == 'kvalloc_form') {
+        die(create_kvalloc_form($keys, $indent));
     }
 
 
@@ -44,60 +49,72 @@
     }
     */
 
-    function json2svg($json_obj)
+    //
+    // Create SVG source code from a JSON object (API request or raw data
+    // file written by Data::export_json). Uses the same classes as the
+    // webinterface, but does not write any files.
+    //
+    // @param json_obj decoded JSON object (array)
+    // @return SVG source code. false on error.
+    //
+    function json2svg($json_obj, &$g, &$f, &$color_gradients, &$color_allocation)
     {
-        $return = sanitize($json_obj['title'], $json_obj['subtitle'],
-            $json_obj['dec'], $json_obj['colors'], $json_obj['grad']);
+        if (!is_array($json_obj) || !isset($json_obj['data'])
+            || !is_array($json_obj['data']))
+            return false;
 
-        $pseudo_post = array();
-        switch ($json_obj['base'][1])
+        // build a pseudo $_POST for UserInterface::from_webinterface()
+        $post = array();
+        foreach (array('title', 'subtitle', 'author', 'source', 'dec',
+            'fac', 'grad', 'colors') as $key)
         {
-            case 'bl':
-                $pseudo_post['vis'] = 'bl';
-                break;
-            case 'l':
-                $pseudo_post['vis'] = 'eu';
-                break;
-            case 'gm':
-                $pseudo_post['vis'] = 'gm';
-                if (is_int($json_obj['base'][0]))
-                {
-                    $pseudo_post['gm_spec'] = 'bl';
-                    $pseudo_post['gm_bl'] = $json_obj['base'][0];
-                } else {
-                    $pseudo_post['gm_spec'] = 'oe';
-                }
-                break;
-            case 'bz':
-                $pseudo_post['vis'] = 'bz';
-                if (is_int($json_obj['base'][0]))
-                {
-                    $pseudo_post['bz_spec'] = 'bl';
-                    $pseudo_post['bz_bl'] = $json_obj['base'][0];
-                } else {
-                    $pseudo_post['bz_spec'] = 'austria';
-                }
-                break;
+            if (isset($json_obj[$key]) && is_scalar($json_obj[$key]))
+                $post[$key] = (string)$json_obj[$key];
         }
 
-        $s = select_svg_file($pseudo_post);
-        if (!$s) return false;
+        if (isset($json_obj['palette']) && is_array($json_obj['palette']))
+            $post['palette'] = implode(',', $json_obj['palette']);
+        else if (isset($json_obj['palette']) && is_string($json_obj['palette']))
+            $post['palette'] = $json_obj['palette'];
+        if (!isset($post['grad']))
+            $post['grad'] = '0';
 
-        $data = json2data($pseudo_post, $json_obj['data']);
-        if (!$data) return false;
+        // vispath (apiversion >= 1) or base (apiversion 0)
+        if (isset($json_obj['vispath']) && is_string($json_obj['vispath']))
+            $post['vis_path'] = $json_obj['vispath'];
+        else if (isset($json_obj['base']) && is_array($json_obj['base']))
+            $post['base'] = $json_obj['base'];
 
-        $svg = substitute($s, $return[0][0], $return[1][0],
-            $return[2][0], $return[3][0], $return[4][0], $data);
+        // a list of values is in order of the template,
+        // an object maps names to values
+        if (array_keys($json_obj['data']) === range(0, count($json_obj['data']) - 1))
+        {
+            $post['format'] = 'manual';
+            $post['manual'] = $json_obj['data'];
+        } else {
+            $post['format'] = 'json';
+            $post['json'] = json_encode($json_obj['data']);
+        }
 
-        if (!$svg) return false;
+        $n = new Notifications();
+        $ui = new UserInterface($g, $n);
+        if (!$ui->from_webinterface($post, $color_gradients, $color_allocation))
+            return false;
 
-        return $svg;
+        $d = new Data();
+        $d->import_ui($ui);
+
+        $svg = new Svg($g, $d, $f, $n);
+        if ($svg->fetch() === false)
+            return false;
+        $svg->write_titles();
+        $svg->write_legend();
+        return $svg->write_areas();
     }
 
     $param = ($_GET) ? $_GET : $_POST;
     if (!empty($param['data']))
     {
-        $param['data'] = stripslashes($param['data']);
         $path = $location_raw_data.basename(base64_decode($param['data']));
         if (file_exists($path))
         {
@@ -107,18 +124,18 @@
             $json = json_decode($content, true);
             if (!$json) die();
 
-            $svg = json2svg($json);
+            $svg = json2svg($json, $g, $f, $color_gradients, $color_allocation);
             if (!$svg) die();
         } else {
             die();
         }
     } else if (!empty($param['q']))
     {
-        $param['q'] = stripslashes($param['q']);
         $json = json_decode($param['q'], true);
         if (!$json) die();
 
-        $svg = json2svg($json);
+        $svg = json2svg($json, $g, $f, $color_gradients, $color_allocation);
+        if (!$svg) die();
     }
 
     if ($svg) {
@@ -130,6 +147,11 @@
   <head>
     <title>API für datenlandkarten.at</title>
     <meta name="Content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      body { font-family: Verdana, Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 0 12px; }
+      textarea { box-sizing: border-box; }
+    </style>
   </head>
 
   <body>
@@ -149,7 +171,7 @@
       <textarea name="q" cols="100" rows="15" style="width:100%">{
     "base" : [ "austria", "bl" ],
     "colors" : 10,
-    "data" : { "Kärnten" : 2 },
+    "data" : { "Burgenland" : 1, "Kärnten" : 2, "Wien" : 9 },
     "dec" : 3,
     "grad" : 2,
     "subtitle" : "Untertitel",
@@ -185,7 +207,7 @@
 
     </p>
     <p>
-        <strong>grad:</strong> Number for color gradient (0-7).
+        <strong>grad:</strong> Number for color gradient (0-<?=count($color_gradients) - 1; ?>).
     </p>
     <p>
         <strong>(sub)title:</strong> String for (sub)title.

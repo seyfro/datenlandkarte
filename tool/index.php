@@ -38,7 +38,7 @@
     $ui = new UserInterface($g, $n);
 
     // special feature: show svg filenames
-    if ($_GET && $_GET['mode'] == 'show_svg_filenames')
+    if (isset($_GET['mode']) && $_GET['mode'] == 'show_svg_filenames')
     {
         header('Content-type: text/plain; charset=utf-8');
 
@@ -56,11 +56,12 @@
 
     if ($_POST)
     {
-        $_POST   = striptease($_POST);
+        // NOTE: no striptease() anymore. Magic quotes are gone since PHP 5.4,
+        // stripslashes() would turn the delimiter "\n" into "n".
         $success = $ui->from_webinterface
             ($_POST, $color_gradients, $color_allocation);
 
-        if ($_GET['debug'] == true)
+        if (isset($_GET['debug']) && $_GET['debug'] == true)
         {
             debug_ui($ui);
             exit;
@@ -86,7 +87,7 @@
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://www.datamaps.eu/erstellen/" />
 
-    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <link rel="stylesheet" href="https://www.datamaps.eu/wp-content/themes/datamaps/style.css" type="text/css" media="screen" />
     <link rel="alternate" type="application/rss+xml" title="datamaps.eu &raquo; Feed" href="https://www.datamaps.eu/feed/" />
@@ -152,7 +153,7 @@
             if (error)
             {
                 jQuery('#error > ul')
-                    .append($('<li>Konnte Geodaten nicht anfragen</li>'));
+                    .append(jQuery('<li>Konnte Geodaten nicht anfragen</li>'));
             }
             switch (get_format())
             {
@@ -211,7 +212,7 @@
                     counter = 0;
                     for (value in _cache[key])
                     {
-                        $('#manual_' + counter).val(_cache[key][value]);
+                        jQuery('#manual_' + counter).val(_cache[key][value]);
                         counter++;
                     }
                     break;
@@ -235,8 +236,7 @@
                 case 'manual':
                     _cache[key] = [];
                     var content_exists = false;
-                    //RH broken selection jQuery("*[name=manual[]]").each(function (index) {
-					jQuery("").each(function (index) {
+                    jQuery('input[name="manual[]"]').each(function (index) {
                         value = jQuery(this).val();
                         _cache[key].push(value);
                         if (value != "")
@@ -337,6 +337,53 @@
         .data_list, .data_json, .data_kvalloc {
             display: none;
         }
+        @media screen and (max-width: 700px) {
+            /* form: label above field */
+            #main_form, #main_form tbody, #main_form tr, #main_form td,
+            #sub_form, #sub_form tbody, #sub_form tr, #sub_form td {
+                display: block;
+                width: auto !important;
+            }
+            #main_form td, #sub_form td {
+                padding: 4px 0;
+            }
+            input[type=text], textarea {
+                width: 100%;
+                min-width: 0;
+                box-sizing: border-box;
+            }
+            input.two_symbols {
+                width: 50px;
+            }
+            #vis_ie_renamed {
+                max-height: 300px;
+                -webkit-overflow-scrolling: touch;
+            }
+            #vis_ie_renamed label {
+                display: flex;
+                align-items: flex-start;
+                padding: 4px 0;
+            }
+            #vis_ie_renamed input {
+                flex: none;
+                width: 24px;
+                margin-right: 6px;
+            }
+            #vis_ie_renamed br {
+                display: none;
+            }
+            .indent {
+                margin-left: 0 !important;
+            }
+            .data_manual table {
+                display: table;
+                width: 100% !important;
+            }
+            #submit {
+                width: 100%;
+                padding: 10px;
+            }
+        }
     -->
     </style>
 </head>
@@ -368,6 +415,7 @@
             <div class="art-nav">
                 <div class="art-nav-l"></div>
                 <div class="art-nav-r"></div>
+                <button type="button" class="art-menu-toggle" aria-expanded="false">Menü</button>
                 <ul class="art-menu">
     <li><a href="https://www.datamaps.eu" title="Startseite"><span class="l"> </span><span class="r"> </span><span class="t">Startseite</span></a>
     </li>

@@ -2056,3 +2056,269 @@ text-decoration: underline;
 }
 
 
+/* begin Responsive (mobile) */
+.art-menu-toggle
+{
+  display: none;
+}
+
+img, embed, object, video, iframe
+{
+  max-width: 100%;
+}
+
+img
+{
+  height: auto;
+}
+
+.gallery img
+{
+  box-sizing: border-box;
+}
+
+/* screens narrower than the 1000px sheet: fluid layout */
+@media screen and (max-width: 1020px)
+{
+  #art-page-background-middle-texture,
+  #art-page-background-top-texture,
+  #art-page-background-glare
+  {
+    min-width: 0;
+  }
+
+  .art-sheet
+  {
+    width: auto;
+    margin: 10px 10px 0 10px;
+  }
+
+  /* header: scale the image instead of a fixed 994px box */
+  div.art-header
+  {
+    height: 0;
+    padding-bottom: 29.6%; /* keeps the 994x294 ratio of header.jpg */
+    background-color: #12406F;
+  }
+
+  div.art-header-center
+  {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  div.art-header-png
+  {
+    display: none;
+  }
+
+  div.art-header-jpeg
+  {
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: right center;
+  }
+
+  div.art-logo
+  {
+    left: 5%;
+    margin-left: 0;
+    top: 25%;
+  }
+
+  h2.art-logo-text
+  {
+    margin: 30px 0 0 15%;
+  }
+
+  .art-nav-r
+  {
+    display: none;
+  }
+
+  /* gradient only for the first line, if the menu wraps */
+  .art-nav-l
+  {
+    right: 0;
+    background-color: #3F4B4C;
+    background-repeat: repeat-x;
+  }
+}
+
+/* small screens (smartphones) */
+@media screen and (max-width: 700px)
+{
+  .art-sheet
+  {
+    margin: 0;
+  }
+
+  div.art-logo
+  {
+    left: 15px;
+    top: 20px;
+  }
+
+  h1.art-logo-name,
+  h1.art-logo-name a, h1.art-logo-name a:link, h1.art-logo-name a:visited, h1.art-logo-name a:hover
+  {
+    font-size: 26px;
+  }
+
+  h2.art-logo-text,
+  h2.art-logo-text a, h2.art-logo-text a:link, h2.art-logo-text a:visited, h2.art-logo-text a:hover
+  {
+    font-size: 16px;
+  }
+
+  h2.art-logo-text
+  {
+    margin: 6px 0 0 0;
+  }
+
+  /* menu: toggle button and one item per line */
+  .art-menu-toggle
+  {
+    display: block;
+    width: 100%;
+    height: 41px;
+    margin: 0;
+    padding: 0 15px;
+    border: none;
+    background: transparent;
+    color: #FFFFFF;
+    font-family: "Trebuchet MS", Arial, Helvetica, Sans-Serif;
+    font-size: 15px;
+    font-weight: bold;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .art-menu-toggle:before
+  {
+    content: "\2630\00a0\00a0";
+  }
+
+  .art-nav ul.art-menu
+  {
+    display: none;
+    padding: 0 0 5px 0;
+  }
+
+  .art-nav.art-menu-open ul.art-menu
+  {
+    display: block;
+  }
+
+  .art-menu li
+  {
+    float: none;
+  }
+
+  .art-menu .art-menu-li-separator
+  {
+    display: none;
+  }
+
+  .art-menu a
+  {
+    height: auto;
+  }
+
+  .art-menu a .l, .art-menu a .r
+  {
+    display: none;
+  }
+
+  .art-menu a .t
+  {
+    display: block;
+    margin: 0;
+    padding: 6px 15px;
+    line-height: 22px;
+    text-align: left;
+  }
+
+  .art-menu a.active, .art-menu li.active > a
+  {
+    background-color: #4A8AD8;
+  }
+
+  /* submenus are always visible and indented */
+  .art-menu ul, .art-menu ul ul
+  {
+    visibility: visible;
+    position: static;
+    padding: 0 0 0 15px;
+    margin: 0;
+    background-image: none;
+  }
+
+  .art-menu ul a
+  {
+    width: auto;
+    background-image: none;
+    color: #FFFFFF;
+  }
+
+  /* content and sidebar below each other */
+  .art-content-layout,
+  .art-content-layout-row,
+  .art-content-layout .art-layout-cell,
+  .art-content-layout .art-layout-cell .art-content-layout .art-layout-cell
+  {
+    display: block;
+    width: auto !important;
+  }
+
+  .art-post
+  {
+    margin: 0;
+  }
+
+  .art-post-body
+  {
+    padding: 10px 8px;
+  }
+
+  .art-postcontent table
+  {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .art-article img, img.art-article
+  {
+    margin: 5px 0;
+  }
+
+  .alignleft, .alignright
+  {
+    float: none !important;
+  }
+
+  input, select, textarea
+  {
+    max-width: 100%;
+    font-size: 16px; /* prevents zooming on iOS */
+  }
+
+  .gallery .gallery-item
+  {
+    width: 50%;
+  }
+
+  .art-footer-text > div,
+  .art-footer-text > p
+  {
+    float: none !important;
+    text-align: center !important;
+    margin: 10px 0;
+  }
+}
+/* end Responsive (mobile) */

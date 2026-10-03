@@ -97,9 +97,10 @@ function art_widget_extra_control()
 
 class VMenuWidget extends WP_Widget {
 
-	function VMenuWidget() {
+	// PHP 4 style constructors are no longer called since PHP 8.0
+	function __construct() {
 		$widget_ops = array('classname' => 'vmenu', 'description' => __('Use this widget to add one of your custom menus as a widget.', THEME_NS) );
-		parent::WP_Widget( false , __('Vertical Menu'), $widget_ops );
+		parent::__construct( false , __('Vertical Menu'), $widget_ops );
 	}
 
 	function widget($args, $instance) {
@@ -181,9 +182,9 @@ class VMenuWidget extends WP_Widget {
 
 class LoginWidget extends WP_Widget{
 
-	function LoginWidget(){
+	function __construct(){
 	  $widget_ops = array('classname' => 'login', 'description' => __( 'Login form') );
-	  $this->WP_Widget(false, __('Login'), $widget_ops);
+	  parent::__construct(false, __('Login'), $widget_ops);
 	}
 
 	function widget($args, $instance){
@@ -214,7 +215,7 @@ class LoginWidget extends WP_Widget{
 			echo $after_title; ?>
 
 			<form action="<?php bloginfo('wpurl') ?>/wp-login.php" method="post">
-				<label for="log"><?php _e('Username') ?></label><br /><input type="text" name="log" id="log" value="<?php echo esc_attr(stripslashes($user_login), 1) ?>" size="20" /><br />
+				<label for="log"><?php _e('Username') ?></label><br /><input type="text" name="log" id="log" value="<?php echo esc_attr(stripslashes((string)$user_login)) ?>" size="20" /><br />
 				<label for="pwd"><?php _e("Password"); ?></label><br /><input type="password" name="pwd" id="pwd" size="20" /><br />
 				<span class="art-button-wrapper">
 					<span class="art-button-l"> </span>

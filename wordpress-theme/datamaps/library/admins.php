@@ -122,7 +122,7 @@ function art_print_option_control($op, $val){
 }
 
 // Not support old wp version
-if (WP_VERSION < 3.0) return;
+if (version_compare(WP_VERSION, '3.0', '<')) return;
  
 
 

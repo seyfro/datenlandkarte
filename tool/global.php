@@ -4,6 +4,10 @@
     $location_creation = './upload/';
     $location_raw_data = './data/';
     $location_pattern_svgs = './svgs/';
+    // Programm für die PNG-Erzeugung (z.B. '/usr/bin/convert', 'magick',
+    // '/usr/bin/rsvg-convert'). Leer = automatisch durchprobieren.
+    // Bei Problemen: test.php aufrufen.
+    FileManager::$png_converter = '';
     // Formate
     $formats = array(
         'manual' => 'Manuell', 'list' => 'Liste',

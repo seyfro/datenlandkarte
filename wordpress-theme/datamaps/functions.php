@@ -20,7 +20,7 @@ if (class_exists('xili_language')) {
 	load_theme_textdomain(THEME_NS, TEMPLATEPATH . THEME_LANGS_FOLDER);
 }
 
-if (WP_VERSION < 3.0){
+if (version_compare(WP_VERSION, '3.0', '<')){
 	require_once(TEMPLATEPATH . '/library/legacy.php');
 }
 
@@ -30,7 +30,7 @@ art_include_lib('wrappers.php');
 art_include_lib('sidebars.php');
 art_include_lib('navigation.php');
 art_include_lib('shortcodes.php');
-if (WP_VERSION >= 3.0) {
+if (version_compare(WP_VERSION, '3.0', '>=')) {
 	art_include_lib('widgets.php');
 }
 
@@ -62,7 +62,7 @@ if(is_admin()){
 		add_theme_page(__('Theme Options'), __('Theme Options'), 'edit_themes', basename(__FILE__), 'art_print_options');
 	} 
 	add_action('admin_menu', 'art_add_option_page');
-	if (WP_VERSION >= 3.0) {
+	if (version_compare(WP_VERSION, '3.0', '>=')) {
 		/* Add widgets extra option */
 		add_action('sidebar_admin_setup', 'art_widget_process_control');
 		
@@ -455,7 +455,7 @@ if (!function_exists('art_get_next_image_link')){
 if (!function_exists('art_get_adjacent_post_link')){
 	function art_get_adjacent_post_link($format, $link, $in_same_cat = false, $excluded_categories = '', $previous = true) {
 		if ( $previous && is_attachment() )
-			$post = & get_post($GLOBALS['post']->post_parent);
+			$post = get_post($GLOBALS['post']->post_parent);
 		else
 			$post = get_adjacent_post($in_same_cat, $excluded_categories, $previous);
 
@@ -513,6 +513,7 @@ if (!function_exists('art_comment')){
 		switch ( $comment->comment_type ) :
 		
 			case '' :
+			case 'comment' : // WordPress >= 5.5 uses 'comment' instead of ''
 		?>
 		<li <?php comment_class(); ?> id="li-comment-<?php comment_ID(); ?>">
 			<?php ob_start(); ?>

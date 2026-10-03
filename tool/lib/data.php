@@ -37,6 +37,7 @@
         public $visibility;
         public $dec;
         public $scale;
+        public $grad;
 
         // objects
         public $colors;
@@ -79,7 +80,7 @@
             if (!$apiversion)
                 $this->apiversion = 1;
             else
-                $this->apiversion = $version;
+                $this->apiversion = $apiversion;
 
             if (!$author)
                 $this->author = "";

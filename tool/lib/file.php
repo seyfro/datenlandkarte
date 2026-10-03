@@ -40,6 +40,14 @@
         public $visibility_public        = 1;
         public $visibility_private       = 0;
 
+        // Program to convert SVG to PNG (path or name), set in global.php.
+        // Empty: try the programs in $png_converters_auto.
+        public static $png_converter     = '';
+        public static $png_converters_auto = array('/usr/bin/convert',
+            'magick', 'rsvg-convert', 'convert');
+        // Reason of the last failed PNG creation (for diagnosis)
+        public $png_log = array();
+
         //
         // Constructor
         //
@@ -237,7 +245,7 @@
 
             // search in directory 2
             chdir($this->folder_raw_data);
-            $files2 = glob($format.$this->extension_json);
+            $files2 = glob($format.self::$extension_json);
             if (is_array($files2))
             {
                 foreach ($files2 as $key => $file)
@@ -315,20 +323,7 @@
             if ($r === false)
                 return $this->error->add('Konnte SVG Datei nicht schreiben', 3);
 
-            /*
-                // Usage of Image Imagick PHP API
-
-                $img = new Imagick($filename['svg']);
-                $img->writeImage($filename['png']);
-                $s = $img->getSize();
-                $img->scaleImage($s[0], $s[1]);
-                $img->writeImage($filename['bpng']);
-                $img->clear();
-                $img->destroy();
-            */
-
-            exec('/usr/bin/convert '.$svg_file.' '.$filebase.self::$extension_png);
-            exec('/usr/bin/convert -scale 300% '.$svg_file.' '.
+            $this->create_pngs($svg_file, $filebase.self::$extension_png,
                 $filebase.self::$extension_big_png);
 
             $files = array();
@@ -341,12 +336,124 @@
                     $files[] = $file;
             }
 
+            // The SVG exists, so missing PNGs are only a note (class 1)
             if (count($files) != 3)
             {
-                $this->error->add('Eine Graphik konnte nicht erzeugt werden',3);
+                $this->error->add('Die PNG-Grafiken konnten nicht erzeugt '.
+                    'werden. Die SVG-Grafik steht trotzdem zum Download '.
+                    'bereit.', 1);
             }
 
             return $files;
+        }
+
+        //
+        // Get the shell commands to convert an SVG to PNG with a program
+        //
+        // @param bin path or name of the program
+        // @param in SVG file
+        // @param out PNG file
+        // @param big_out PNG file in triple size
+        // @return array(command for out, command for big_out)
+        //
+        static public function png_commands($bin, $in, $out, $big_out)
+        {
+            $b = escapeshellarg($bin);
+            $in = escapeshellarg($in);
+            $out = escapeshellarg($out);
+            $big_out = escapeshellarg($big_out);
+            $name = strtolower(basename($bin));
+
+            if (strpos($name, 'rsvg') !== false)
+                return array($b.' -o '.$out.' '.$in,
+                    $b.' -z 3 -o '.$big_out.' '.$in);
+            if (strpos($name, 'magick') === 0)
+                return array($b.' '.$in.' '.$out,
+                    $b.' '.$in.' -scale 300% '.$big_out);
+            // ImageMagick 6 (convert)
+            return array($b.' '.$in.' '.$out,
+                $b.' -scale 300% '.$in.' '.$big_out);
+        }
+
+        //
+        // Is exec() available? (might be in disable_functions)
+        //
+        // @return bool
+        //
+        static public function exec_available()
+        {
+            if (!function_exists('exec'))
+                return false;
+            $disabled = array_map('trim',
+                explode(',', (string)ini_get('disable_functions')));
+            return !in_array('exec', $disabled);
+        }
+
+        //
+        // Convert SVG to PNG and triple size PNG. Tries the configured
+        // program, the programs in png_converters_auto and finally the
+        // Imagick PHP extension. The reason of a failure is written to the
+        // PHP error log and to the png_log attribute.
+        //
+        // @param svg_file SVG file to convert
+        // @param png_file PNG file to create
+        // @param big_png_file triple size PNG file to create
+        // @return true if both PNG files exist
+        //
+        public function create_pngs($svg_file, $png_file, $big_png_file)
+        {
+            $this->png_log = array();
+
+            if (self::exec_available())
+            {
+                if (self::$png_converter !== '')
+                    $converters = array(self::$png_converter);
+                else
+                    $converters = self::$png_converters_auto;
+
+                foreach ($converters as $bin)
+                {
+                    $commands = self::png_commands($bin, $svg_file,
+                        $png_file, $big_png_file);
+                    foreach ($commands as $command)
+                    {
+                        $output = array();
+                        $status = -1;
+                        exec($command.' 2>&1', $output, $status);
+                        if ($status !== 0)
+                            $this->png_log[] = $bin.': exit code '.$status
+                                .': '.trim(implode(' ', $output));
+                    }
+
+                    if (file_exists($png_file) && file_exists($big_png_file))
+                        return true;
+                }
+            } else
+                $this->png_log[] = 'exec() is disabled (disable_functions)';
+
+            if (extension_loaded('imagick'))
+            {
+                try
+                {
+                    $img = new Imagick($svg_file);
+                    $img->setImageFormat('png');
+                    $img->writeImage($png_file);
+                    $img->scaleImage($img->getImageWidth() * 3,
+                        $img->getImageHeight() * 3);
+                    $img->writeImage($big_png_file);
+                    $img->clear();
+
+                    if (file_exists($png_file) && file_exists($big_png_file))
+                        return true;
+                } catch (Exception $e) {
+                    $this->png_log[] = 'Imagick: '.$e->getMessage();
+                }
+            } else
+                $this->png_log[] = 'PHP extension imagick not loaded';
+
+            error_log('datamaps: PNG creation failed for '.$svg_file.': '
+                .implode(' | ', $this->png_log));
+            return false;
         }
 
         //
@@ -363,7 +470,7 @@
                 return -1;
 
             $base = $this->_sanitize($data->vispath);
-            $filename = $this->folder_base_map.$base.$this->extension_json;
+            $filename = $this->folder_base_map.$base.self::$extension_json;
             if (file_exists($filename))
                 return -2;
             if (!move_uploaded_file($file['tmp_name'], $filename))

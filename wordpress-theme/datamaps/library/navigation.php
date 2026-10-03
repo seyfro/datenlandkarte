@@ -55,6 +55,7 @@ function art_get_list_menu($args = array()) {
 	}
 
 	$current_ID = $active_ID;
+	$activeIDs = array();
     while ($current_ID && isset($IdToKey[$current_ID])) {
         $activeIDs[] = $current_ID;
         $current_item = &$menu_items[$IdToKey[$current_ID]];
@@ -91,14 +92,14 @@ function art_get_list_menu($args = array()) {
 	$walker = new art_MenuWalker();
 	$items = $walker->walk($items, $args);
 	$items = apply_filters('wp_nav_menu_items', $items, $args);
-	$items = apply_filters("wp_nav_menu_{$menu->slug}_items", $items, $args);
+	$items = apply_filters("wp_nav_menu_{$args['menu']->slug}_items", $items, $args);
 	return apply_filters('wp_nav_menu', $items, $args);
 }
 
 /* pages */
 function art_get_list_pages($args = array()) {
 	global $wp_query;
-	$pages = &get_pages($args);
+	$pages = get_pages($args);
 	if (empty($pages)) return '';
 	
 	$IdToKey = array();
@@ -185,7 +186,7 @@ function art_get_list_pages($args = array()) {
 /* categories */
 function art_get_list_categories($args = array()) {
 	global $wp_query, $post;
-	$categories = &get_categories($args);
+	$categories = get_categories($args);
 	if (empty($categories)) return '';
 	$IdToKey = array();
 	foreach ($categories as $key => $category){
@@ -243,7 +244,8 @@ class art_MenuItem {
 	var $attr;
 	var $title;
 	
-	function art_MenuItem($args = '') {
+	// PHP 4 style constructors are no longer called since PHP 8.0
+	function __construct($args = '') {
 		$args = wp_parse_args($args, 
 			array(
 				'id' => '',
@@ -343,7 +345,7 @@ class art_MenuWalker {
 }
 
 // Not support old wp version
-if (WP_VERSION < 3.0) return;
+if (version_compare(WP_VERSION, '3.0', '<')) return;
 function art_get_pages( $pages ) {
 	if(is_admin()) return $pages;
 
